@@ -11,6 +11,7 @@ local M = {}
 ---@field output_lang string Language tag for the output fence (default: "output")
 ---@field strip_ansi boolean Strip ANSI escape color sequences from terminal outputs (default: true)
 ---@field timeout number Execution timeout in milliseconds (default: 15000)
+---@field usurai_sync boolean Sync language catalog from usurai.nvim if present (default: true)
 ---@field keymaps table<string, string|false> Key mappings
 ---@field blocks table<string, ArticleBlockDef> Block definitions and runners
 
@@ -23,11 +24,46 @@ local function default_pwsh()
   return "pwsh"
 end
 
+---Sync block definitions with usurai.nvim catalog if available
+---@param blocks table<string, ArticleBlockDef>
+local function sync_usurai_catalog(blocks)
+  local ok, usurai_langs = pcall(require, "usurai.config.langs")
+  if not ok or not usurai_langs.catalog then
+    return
+  end
+
+  local usurai_defaults = {
+    ruby = { cmd = "ruby", args = { "-e" }, desc = "Ruby script" },
+    rust = { desc = "Rust snippet", template = "fn main() {\n    println!(\"Hello\");\n}" },
+    go = { desc = "Go snippet", template = "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello\")\n}" },
+    zig = { desc = "Zig snippet", template = "const std = @import(\"std\");\n\npub fn main() void {\n    std.debug.print(\"Hello\\n\", .{});\n}" },
+    sql = { desc = "SQL query", template = "SELECT 1;" },
+    shell = { cmd = "bash", args = { "-c" }, desc = "Bash / Shell script" },
+    docker = {
+      desc = "Dockerfile template",
+      template = { "FROM alpine:latest", "RUN apk update" },
+    },
+  }
+
+  for lang, pack in pairs(usurai_langs.catalog) do
+    if not blocks[lang] then
+      local candidate = usurai_defaults[lang] or {}
+      blocks[lang] = {
+        cmd = candidate.cmd,
+        args = candidate.args,
+        desc = candidate.desc or pack.desc,
+        template = candidate.template,
+      }
+    end
+  end
+end
+
 ---@type ArticleConfig
 M.defaults = {
   output_lang = "output",
   strip_ansi = true,
   timeout = 15000,
+  usurai_sync = true,
   keymaps = {
     enable = true,
     run = "<leader>ax",      -- Run current code block & update output
@@ -99,7 +135,11 @@ M.options = {}
 ---@param user_opts? table
 ---@return ArticleConfig
 function M.setup(user_opts)
-  M.options = vim.tbl_deep_extend("force", {}, M.defaults, user_opts or {})
+  local base = vim.deepcopy(M.defaults)
+  M.options = vim.tbl_deep_extend("force", base, user_opts or {})
+  if M.options.usurai_sync then
+    sync_usurai_catalog(M.options.blocks)
+  end
   return M.options
 end
 
