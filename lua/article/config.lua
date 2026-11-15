@@ -201,6 +201,101 @@ M.defaults = {
         end, code, callback)
       end,
     },
+    c = {
+      desc = "C (compiled via clang / gcc)",
+      template = {
+        "#include <stdio.h>",
+        "",
+        "int main(void) {",
+        '    printf("Hello from C!\\n");',
+        "    return 0;",
+        "}",
+      },
+      runner = function(code, _, callback)
+        local cc = (vim.fn.executable("clang") == 1 and "clang") or (vim.fn.executable("gcc") == 1 and "gcc")
+        if not cc then
+          callback("", "Neither 'clang' nor 'gcc' found in PATH")
+          return
+        end
+        run_temp_compiled("c", function(src, bin)
+          return { "bash", "-c", string.format("%s %q -o %q && %q", cc, src, bin, bin) }
+        end, code, callback)
+      end,
+    },
+    go = {
+      desc = "Go (run via go run)",
+      template = {
+        "package main",
+        "",
+        'import "fmt"',
+        "",
+        "func main() {",
+        '    fmt.Println("Hello from Go!")',
+        "}",
+      },
+      runner = function(code, _, callback)
+        if vim.fn.executable("go") ~= 1 then
+          callback("", "Executable 'go' not found in PATH")
+          return
+        end
+        run_temp_compiled("go", function(src, _)
+          return { "go", "run", src }
+        end, code, callback)
+      end,
+    },
+    java = {
+      desc = "Java (executed via java source runner)",
+      template = {
+        "public class Main {",
+        "    public static void main(String[] args) {",
+        '        System.out.println("Hello from Java!");',
+        "    }",
+        "}",
+      },
+      runner = function(code, _, callback)
+        if vim.fn.executable("java") ~= 1 then
+          callback("", "Executable 'java' not found in PATH")
+          return
+        end
+        run_temp_compiled("java", function(src, _)
+          return { "java", src }
+        end, code, callback)
+      end,
+    },
+    csharp = {
+      desc = "C# (dotnet-script / csharp)",
+      template = {
+        'System.Console.WriteLine("Hello from C#!");',
+      },
+      runner = function(code, _, callback)
+        local cmd = nil
+        if vim.fn.executable("dotnet-script") == 1 then
+          cmd = { "dotnet-script", "eval", code }
+        elseif vim.fn.executable("csharp") == 1 then
+          cmd = { "csharp", "-e", code }
+        end
+        if not cmd then
+          callback("", "Neither 'dotnet-script' nor 'csharp' found in PATH")
+          return
+        end
+        vim.system(cmd, { text = true }, function(obj)
+          local out = (obj.stdout or "") .. (obj.stderr or "")
+          callback(out, obj.code ~= 0 and ("C# execution failed (exit code " .. obj.code .. ")") or nil)
+        end)
+      end,
+    },
+    sql = {
+      cmd = "sqlite3",
+      args = { ":memory:" },
+      desc = "SQL (sqlite3 in-memory)",
+      template = "SELECT 'Hello from SQL' AS message;",
+    },
+    r = {
+      cmd = "Rscript",
+      args = { "-e" },
+      desc = "R script",
+      template = 'cat("Hello from R\\n")',
+    },
     dockerfile = {
       desc = "Dockerfile template",
       template = {

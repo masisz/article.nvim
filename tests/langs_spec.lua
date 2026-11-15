@@ -14,4 +14,12 @@ assert(opts.blocks.zig ~= nil, "zig block should exist")
 assert(opts.blocks.ruby ~= nil, "ruby block should exist")
 assert(opts.blocks.cpp ~= nil, "cpp block should exist")
 
-print("All language definitions verified successfully!")
+-- Verify TIOBE Top 10 additions
+assert(opts.blocks.c ~= nil, "c block should exist")
+assert(opts.blocks.go ~= nil, "go block should exist")
+assert(opts.blocks.java ~= nil, "java block should exist")
+assert(opts.blocks.csharp ~= nil, "csharp block should exist")
+assert(opts.blocks.sql ~= nil, "sql block should exist")
+assert(opts.blocks.r ~= nil, "r block should exist")
+
+print("All TIOBE language definitions verified successfully!")

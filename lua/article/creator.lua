@@ -24,9 +24,15 @@ local function get_available_languages()
     rust = 7,
     zig = 8,
     ruby = 9,
-    cpp = 10,
-    dockerfile = 11,
-    yaml = 12,
+    c = 10,
+    cpp = 11,
+    go = 12,
+    java = 13,
+    csharp = 14,
+    sql = 15,
+    r = 16,
+    dockerfile = 17,
+    yaml = 18,
   }
   table.sort(list, function(a, b)
     local pa = priority[a.lang] or 99
