@@ -69,22 +69,21 @@ function M.open(opts)
   local dir = vim.fs.normalize(vim.fn.expand(cfg.directory))
 
   if vim.fn.isdirectory(dir) == 0 then
-    vim.notify("Article: Directory not found: " .. dir, vim.log.levels.WARN)
+    vim.fn.mkdir(dir, "p")
+  end
+
+  local articles = M.scan_articles(dir, cfg.extension)
+  if #articles == 0 then
+    vim.notify("Article: No articles found in " .. dir .. ". Create one with <leader>an or :ArticleNew", vim.log.levels.INFO)
     return
   end
 
   -- 1. Try Snacks.picker if available (integrated with usurai.nvim)
   if _G.Snacks and Snacks.picker then
-    local articles = M.scan_articles(dir, cfg.extension)
-    if #articles == 0 then
-      vim.notify("Article: No articles found in " .. dir, vim.log.levels.INFO)
-      return
-    end
-
     local items = {}
     for _, art in ipairs(articles) do
       table.insert(items, {
-        text = string.format("%s  │  %s", art.filename, art.title),
+        text = string.format("%-30s  │  %s", art.filename, art.title),
         file = art.path,
         title = art.title,
       })
@@ -94,18 +93,12 @@ function M.open(opts)
       source = "articles",
       title = "Articles (" .. dir .. ")",
       items = items,
-      format = function(item)
-        return {
-          { item.file and vim.fs.basename(item.file) or "", "Directory" },
-          { "  │  ", "Comment" },
-          { item.title or "", "Normal" },
-        }
-      end,
+      format = "text",
       preview = "file",
       confirm = function(picker, item)
         picker:close()
         if item and item.file then
-          vim.cmd.edit(item.file)
+          vim.cmd("edit " .. vim.fn.fnameescape(item.file))
         end
       end,
     })
@@ -123,20 +116,14 @@ function M.open(opts)
   end
 
   -- 3. Fallback to native vim.ui.select
-  local articles = M.scan_articles(dir, cfg.extension)
-  if #articles == 0 then
-    vim.notify("Article: No articles found in " .. dir, vim.log.levels.INFO)
-    return
-  end
-
   vim.ui.select(articles, {
     prompt = "Select Article to Open:",
     format_item = function(item)
-      return string.format("%-32s  │  %s", item.filename, item.title)
+      return string.format("%-30s  │  %s", item.filename, item.title)
     end,
   }, function(choice)
     if choice then
-      vim.cmd.edit(choice.path)
+      vim.cmd("edit " .. vim.fn.fnameescape(choice.path))
     end
   end)
 end
@@ -148,8 +135,7 @@ function M.grep(opts)
   local dir = vim.fs.normalize(vim.fn.expand(cfg.directory))
 
   if vim.fn.isdirectory(dir) == 0 then
-    vim.notify("Article: Directory not found: " .. dir, vim.log.levels.WARN)
-    return
+    vim.fn.mkdir(dir, "p")
   end
 
   if _G.Snacks and Snacks.picker then
