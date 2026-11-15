@@ -8,7 +8,7 @@ local M = {}
 ---@field runner? fun(code: string, block: ArticleBlockInfo, callback: fun(output: string, err: string?)) Custom execution runner
 
 ---@class ArticleConfig
----@field directory string Directory where new articles are created (default: "~/articles")
+---@field directory string|table<string, string> Directory where new articles are created (default: "~/articles")
 ---@field date_format string Date format for filename prefix (default: "%Y%m%d")
 ---@field extension string File extension for article files (default: "md")
 ---@field template (string|fun():string)[] Template lines for new articles
@@ -19,6 +19,24 @@ local M = {}
 ---@field usurai_sync boolean Sync language catalog from usurai.nvim if present (default: true)
 ---@field keymaps table<string, string|false> Key mappings
 ---@field blocks table<string, ArticleBlockDef> Block definitions and runners
+
+---Resolve directory string from string or OS-specific table
+---@param dir? string|table<string, string>
+---@return string
+function M.resolve_directory(dir)
+  if type(dir) == "table" then
+    local is_win = vim.fn.has("win32") == 1 or vim.fn.has("win64") == 1
+    local is_mac = vim.fn.has("macunix") == 1
+    if is_win then
+      return dir.windows or dir.win or dir[1] or "~/articles"
+    elseif is_mac then
+      return dir.mac or dir.darwin or dir[1] or "~/articles"
+    else
+      return dir.linux or dir.unix or dir[1] or "~/articles"
+    end
+  end
+  return dir or "~/articles"
+end
 
 local function default_pwsh()
   if vim.fn.executable("pwsh") == 1 then

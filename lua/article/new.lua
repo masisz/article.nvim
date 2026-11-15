@@ -77,7 +77,7 @@ end
 ---@return string? Filepath
 function M.create_article(title, opts)
   local cfg = vim.tbl_deep_extend("force", config.get(), opts or {})
-  local dir = vim.fs.normalize(vim.fn.expand(cfg.directory))
+  local dir = vim.fs.normalize(vim.fn.expand(config.resolve_directory(cfg.directory)))
 
   -- Ensure directory exists
   if vim.fn.isdirectory(dir) == 0 then

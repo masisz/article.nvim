@@ -66,7 +66,7 @@ end
 ---@param opts? table
 function M.open(opts)
   local cfg = vim.tbl_deep_extend("force", config.get(), opts or {})
-  local dir = vim.fs.normalize(vim.fn.expand(cfg.directory))
+  local dir = vim.fs.normalize(vim.fn.expand(config.resolve_directory(cfg.directory)))
 
   if vim.fn.isdirectory(dir) == 0 then
     vim.fn.mkdir(dir, "p")
@@ -132,7 +132,7 @@ end
 ---@param opts? table
 function M.grep(opts)
   local cfg = vim.tbl_deep_extend("force", config.get(), opts or {})
-  local dir = vim.fs.normalize(vim.fn.expand(cfg.directory))
+  local dir = vim.fs.normalize(vim.fn.expand(config.resolve_directory(cfg.directory)))
 
   if vim.fn.isdirectory(dir) == 0 then
     vim.fn.mkdir(dir, "p")
