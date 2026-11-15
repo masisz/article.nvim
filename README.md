@@ -35,16 +35,18 @@
 
 ---
 
-## デフォルトキーバインド (Markdown バッファ専用)
+## デフォルトキーバインド
 
 | キー | コマンド | 説明 |
 | :--- | :--- | :--- |
+| `<leader>aN` | `:ArticleNew [title]` | **指定ディレクトリ内に新規記事を作成**（タイトル入力・連番・テンプレート付き） |
 | `<leader>ax` | `:ArticleRun` | カーソル位置のコードブロックを実行し、直下に ````output` を生成/更新 |
 | `<leader>an` | `:ArticleNext` | 現在のブロックを実行後、**自動的に次のコードブロックへジャンプ**（手順の通しテスト） |
 | `<leader>ab` | `:ArticleInsert` | コードブロック挿入セレクタを開く（テンプレート付き） |
 | `<leader>ae` | `:ArticleEdit` | ブロックを専用バッファ（Float Window）で開き、LSP補完を効かせて編集 |
 | `<leader>ac` | `:ArticleClear` | 直下の ````output` ブロックを消去 |
 
+※ `<leader>aN`（新規作成）はどのバッファからでもグローバルに呼び出せます。
 ※ 専用エディタ画面（`<leader>ae`）内では、`q` または `<C-c><C-c>` で保存して記事へ戻れます。
 
 ---
@@ -55,13 +57,28 @@
 
 ```lua
 require("article").setup({
-  output_lang = "output", -- 出力ブロックの言語タグ (```output)
-  strip_ansi = true,      -- ターミナルカラーコードを除去
-  timeout = 15000,        -- タイムアウト (ms)
+  directory = "~/articles", -- 記事の保存先ディレクトリ（自動作成されます）
+  date_format = "%Y%m%d",   -- ファイル名の日付プレフィックス
+  extension = "md",         -- 拡張子
+  template = {              -- 新規作成時の初期テンプレート
+    "# [Title]",
+    "",
+    function() return "Created: " .. os.date("%Y-%m-%d %H:%M") end,
+    "Tags: #article",
+    "",
+    "## Overview",
+    "",
+  },
+  cursor_pos = { 7, 0 },    -- 作成時の初期カーソル位置
+
+  output_lang = "output",   -- 出力ブロックの言語タグ (```output)
+  strip_ansi = true,        -- ターミナルカラーコードを除去
+  timeout = 15000,          -- タイムアウト (ms)
 
   -- キーマップのカスタマイズ (false で無効化)
   keymaps = {
     enable = true,
+    new = "<leader>aN",     -- 新規記事作成
     run = "<leader>ax",
     next = "<leader>an",
     insert = "<leader>ab",

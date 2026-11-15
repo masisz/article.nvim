@@ -7,6 +7,18 @@ vim.g.loaded_article = 1
 require("article").setup()
 
 -- User commands
+vim.api.nvim_create_user_command("ArticleNew", function(opts)
+  local title = opts.args ~= "" and opts.args or nil
+  if title then
+    require("article").create(title)
+  else
+    require("article").new()
+  end
+end, {
+  nargs = "*",
+  desc = "Create a new article in directory",
+})
+
 vim.api.nvim_create_user_command("ArticleRun", function()
   require("article").run()
 end, { desc = "Run code block under cursor" })

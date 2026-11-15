@@ -8,6 +8,11 @@ local M = {}
 ---@field runner? fun(code: string, block: ArticleBlockInfo, callback: fun(output: string, err: string?)) Custom execution runner
 
 ---@class ArticleConfig
+---@field directory string Directory where new articles are created (default: "~/articles")
+---@field date_format string Date format for filename prefix (default: "%Y%m%d")
+---@field extension string File extension for article files (default: "md")
+---@field template (string|fun():string)[] Template lines for new articles
+---@field cursor_pos number[] Initial cursor position [line, col] in newly created article (default: { 7, 0 })
 ---@field output_lang string Language tag for the output fence (default: "output")
 ---@field strip_ansi boolean Strip ANSI escape color sequences from terminal outputs (default: true)
 ---@field timeout number Execution timeout in milliseconds (default: 15000)
@@ -112,12 +117,26 @@ end
 
 ---@type ArticleConfig
 M.defaults = {
+  directory = "~/articles",
+  date_format = "%Y%m%d",
+  extension = "md",
+  template = {
+    "# [Title]",
+    "",
+    function() return "Created: " .. os.date("%Y-%m-%d %H:%M") end,
+    "Tags: #article",
+    "",
+    "## Overview",
+    "",
+  },
+  cursor_pos = { 7, 0 },
   output_lang = "output",
   strip_ansi = true,
   timeout = 15000,
   usurai_sync = true,
   keymaps = {
     enable = true,
+    new = "<leader>aN",      -- Create new article in directory
     run = "<leader>ax",      -- Run current code block & update output
     next = "<leader>an",     -- Run current and jump to next code block
     insert = "<leader>ab",   -- Insert a new code block (select language)

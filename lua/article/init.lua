@@ -6,6 +6,7 @@ local executor = require("article.executor")
 local renderer = require("article.renderer")
 local creator = require("article.creator")
 local editor = require("article.editor")
+local new_art = require("article.new")
 
 ---Register group and keymaps with which-key if available
 ---@param km table
@@ -19,6 +20,7 @@ local function register_which_key(km)
   if type(wk.add) == "function" then
     wk.add({
       { "<leader>a", group = "article", icon = { icon = "󰏪", color = "azure" } },
+      { km.new, desc = "New article" },
       { km.run, desc = "Run code block" },
       { km.next, desc = "Run & jump next" },
       { km.insert, desc = "Insert code block" },
@@ -30,6 +32,7 @@ local function register_which_key(km)
     wk.register({
       ["<leader>a"] = {
         name = "+article",
+        N = { "New article" },
         x = { "Run code block" },
         n = { "Run & jump next" },
         b = { "Insert code block" },
@@ -46,6 +49,13 @@ function M.setup(opts)
   local cfg = config.setup(opts)
 
   if cfg.keymaps.enable then
+    local km = cfg.keymaps
+
+    -- Global keymap for creating a new article from anywhere
+    if km.new and km.new ~= false then
+      vim.keymap.set("n", km.new, function() M.new() end, { silent = true, desc = "Article: New article" })
+    end
+
     -- Try registering with which-key immediately if already loaded
     register_which_key(cfg.keymaps)
 
@@ -53,7 +63,6 @@ function M.setup(opts)
       group = vim.api.nvim_create_augroup("ArticlePluginKeys", { clear = true }),
       pattern = { "markdown", "pandoc" },
       callback = function(ev)
-        local km = cfg.keymaps
         local function map(lhs, fn, desc)
           if lhs and lhs ~= false then
             vim.keymap.set("n", lhs, fn, { buffer = ev.buf, silent = true, desc = desc })
@@ -141,6 +150,20 @@ function M.insert_block(lang)
   else
     creator.prompt_insert()
   end
+end
+
+---Create a new article file
+---@param title? string
+---@param opts? table
+---@return string? Filepath
+function M.create(title, opts)
+  return new_art.create_article(title, opts)
+end
+
+---Prompt user and create a new article
+---@param opts? table
+function M.new(opts)
+  new_art.prompt_create(opts)
 end
 
 ---Clear output block below current code block
