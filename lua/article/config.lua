@@ -24,6 +24,32 @@ local function default_pwsh()
   return "pwsh"
 end
 
+---Helper to compile and execute temporary source files for Rust, Zig, C++
+---@param ext string File extension without dot (e.g. "rs", "zig", "cpp")
+---@param build_run_fn fun(src: string, bin: string): string[] Command returning array
+---@param code string
+---@param callback fun(output: string, err: string?)
+local function run_temp_compiled(ext, build_run_fn, code, callback)
+  local tmp_src = vim.fn.tempname() .. "." .. ext
+  local tmp_bin = vim.fn.tempname()
+
+  local f = io.open(tmp_src, "w")
+  if not f then
+    callback("", "Failed to create temporary file: " .. tmp_src)
+    return
+  end
+  f:write(code)
+  f:close()
+
+  local cmd = build_run_fn(tmp_src, tmp_bin)
+  vim.system(cmd, { text = true }, function(obj)
+    local out = (obj.stdout or "") .. (obj.stderr or "")
+    pcall(os.remove, tmp_src)
+    pcall(os.remove, tmp_bin)
+    callback(out, obj.code ~= 0 and ("Execution failed (exit code " .. obj.code .. ")") or nil)
+  end)
+end
+
 ---Sync block definitions with usurai.nvim catalog if available
 ---@param blocks table<string, ArticleBlockDef>
 local function sync_usurai_catalog(blocks)
@@ -32,27 +58,10 @@ local function sync_usurai_catalog(blocks)
     return
   end
 
-  local usurai_defaults = {
-    ruby = { cmd = "ruby", args = { "-e" }, desc = "Ruby script" },
-    rust = { desc = "Rust snippet", template = "fn main() {\n    println!(\"Hello\");\n}" },
-    go = { desc = "Go snippet", template = "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello\")\n}" },
-    zig = { desc = "Zig snippet", template = "const std = @import(\"std\");\n\npub fn main() void {\n    std.debug.print(\"Hello\\n\", .{});\n}" },
-    sql = { desc = "SQL query", template = "SELECT 1;" },
-    shell = { cmd = "bash", args = { "-c" }, desc = "Bash / Shell script" },
-    docker = {
-      desc = "Dockerfile template",
-      template = { "FROM alpine:latest", "RUN apk update" },
-    },
-  }
-
   for lang, pack in pairs(usurai_langs.catalog) do
     if not blocks[lang] then
-      local candidate = usurai_defaults[lang] or {}
       blocks[lang] = {
-        cmd = candidate.cmd,
-        args = candidate.args,
-        desc = candidate.desc or pack.desc,
-        template = candidate.template,
+        desc = pack.desc,
       }
     end
   end
@@ -83,11 +92,6 @@ M.defaults = {
       args = { "-c" },
       desc = "Z shell script",
     },
-    sh = {
-      cmd = "sh",
-      args = { "-c" },
-      desc = "POSIX shell script",
-    },
     pwsh = {
       cmd = default_pwsh(),
       args = { "-NoProfile", "-NonInteractive", "-Command" },
@@ -97,11 +101,105 @@ M.defaults = {
       cmd = "python3",
       args = { "-c" },
       desc = "Python 3 script",
+      template = 'print("Hello from Python")',
     },
-    node = {
-      cmd = "node",
+    javascript = {
+      cmd = vim.fn.executable("bun") == 1 and "bun" or "node",
       args = { "-e" },
-      desc = "Node.js JavaScript",
+      desc = "JavaScript (Node.js / Bun)",
+      template = 'console.log("Hello from JavaScript");',
+    },
+    typescript = {
+      desc = "TypeScript (tsx / bun / ts-node)",
+      template = {
+        "const message: string = 'Hello from TypeScript';",
+        "console.log(message);",
+      },
+      runner = function(code, _, callback)
+        local cmd = nil
+        if vim.fn.executable("tsx") == 1 then
+          cmd = { "tsx", "-e", code }
+        elseif vim.fn.executable("bun") == 1 then
+          cmd = { "bun", "-e", code }
+        elseif vim.fn.executable("deno") == 1 then
+          cmd = { "deno", "eval", code }
+        elseif vim.fn.executable("ts-node") == 1 then
+          cmd = { "ts-node", "-e", code }
+        end
+
+        if not cmd then
+          callback("", "No TypeScript runner found (install tsx, bun, deno, or ts-node)")
+          return
+        end
+
+        vim.system(cmd, { text = true }, function(obj)
+          local out = (obj.stdout or "") .. (obj.stderr or "")
+          callback(out, obj.code ~= 0 and ("TypeScript execution failed (exit code " .. obj.code .. ")") or nil)
+        end)
+      end,
+    },
+    ruby = {
+      cmd = "ruby",
+      args = { "-e" },
+      desc = "Ruby script",
+      template = 'puts "Hello from Ruby #{RUBY_VERSION}"',
+    },
+    rust = {
+      desc = "Rust (compiled via rustc)",
+      template = {
+        "fn main() {",
+        '    println!("Hello from Rust!");',
+        "}",
+      },
+      runner = function(code, _, callback)
+        if vim.fn.executable("rustc") ~= 1 then
+          callback("", "Executable 'rustc' not found in PATH")
+          return
+        end
+        run_temp_compiled("rs", function(src, bin)
+          return { "bash", "-c", string.format("rustc %q -o %q && %q", src, bin, bin) }
+        end, code, callback)
+      end,
+    },
+    zig = {
+      desc = "Zig (run via zig run)",
+      template = {
+        'const std = @import("std");',
+        "",
+        "pub fn main() void {",
+        '    std.debug.print("Hello from Zig!\\n", .{});',
+        "}",
+      },
+      runner = function(code, _, callback)
+        if vim.fn.executable("zig") ~= 1 then
+          callback("", "Executable 'zig' not found in PATH")
+          return
+        end
+        run_temp_compiled("zig", function(src, _)
+          return { "zig", "run", src }
+        end, code, callback)
+      end,
+    },
+    cpp = {
+      desc = "C++ (compiled via clang++ / g++)",
+      template = {
+        "#include <iostream>",
+        "",
+        "int main() {",
+        '    std::cout << "Hello from C++!" << std::endl;',
+        "    return 0;",
+        "}",
+      },
+      runner = function(code, _, callback)
+        local cc = (vim.fn.executable("clang++") == 1 and "clang++") or (vim.fn.executable("g++") == 1 and "g++")
+        if not cc then
+          callback("", "Neither 'clang++' nor 'g++' found in PATH")
+          return
+        end
+        run_temp_compiled("cpp", function(src, bin)
+          return { "bash", "-c", string.format("%s -std=c++17 %q -o %q && %q", cc, src, bin, bin) }
+        end, code, callback)
+      end,
     },
     dockerfile = {
       desc = "Dockerfile template",
