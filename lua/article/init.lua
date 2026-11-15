@@ -7,12 +7,48 @@ local renderer = require("article.renderer")
 local creator = require("article.creator")
 local editor = require("article.editor")
 
+---Register group and keymaps with which-key if available
+---@param km table
+local function register_which_key(km)
+  local ok, wk = pcall(require, "which-key")
+  if not ok then
+    return
+  end
+
+  -- which-key.nvim v3+ (spec / wk.add)
+  if type(wk.add) == "function" then
+    wk.add({
+      { "<leader>a", group = "article", icon = { icon = "󰏪", color = "azure" } },
+      { km.run, desc = "Run code block" },
+      { km.next, desc = "Run & jump next" },
+      { km.insert, desc = "Insert code block" },
+      { km.edit, desc = "Edit in buffer" },
+      { km.clear, desc = "Clear output" },
+    })
+  -- which-key.nvim v2 fallback
+  elseif type(wk.register) == "function" then
+    wk.register({
+      ["<leader>a"] = {
+        name = "+article",
+        x = { "Run code block" },
+        n = { "Run & jump next" },
+        b = { "Insert code block" },
+        e = { "Edit in buffer" },
+        c = { "Clear output" },
+      },
+    })
+  end
+end
+
 ---Setup plugin options and global keymaps
 ---@param opts? table
 function M.setup(opts)
   local cfg = config.setup(opts)
 
   if cfg.keymaps.enable then
+    -- Try registering with which-key immediately if already loaded
+    register_which_key(cfg.keymaps)
+
     vim.api.nvim_create_autocmd("FileType", {
       group = vim.api.nvim_create_augroup("ArticlePluginKeys", { clear = true }),
       pattern = { "markdown", "pandoc" },
@@ -29,6 +65,9 @@ function M.setup(opts)
         map(km.insert, M.insert_block, "Article: Insert code block")
         map(km.edit, M.edit_block, "Article: Edit block in dedicated buffer")
         map(km.clear, M.clear_output, "Article: Clear output block")
+
+        -- Ensure which-key recognizes group on buffer attach (in case which-key was lazy-loaded)
+        register_which_key(km)
       end,
     })
   end
