@@ -88,15 +88,10 @@ M.defaults = {
       args = { "-c" },
       desc = "POSIX shell script",
     },
-    powershell = {
-      cmd = default_pwsh(),
-      args = { "-NoProfile", "-NonInteractive", "-Command" },
-      desc = "PowerShell script (pwsh / powershell.exe)",
-    },
     pwsh = {
       cmd = default_pwsh(),
       args = { "-NoProfile", "-NonInteractive", "-Command" },
-      desc = "PowerShell Core",
+      desc = "PowerShell (pwsh)",
     },
     python = {
       cmd = "python3",

@@ -13,8 +13,8 @@ local function get_available_languages()
     })
   end
 
-  -- Sort alphabetically, but keep bash/zsh/sh/powershell/python towards the top
-  local priority = { bash = 1, zsh = 2, powershell = 3, pwsh = 4, sh = 5, python = 6, dockerfile = 7, yaml = 8 }
+  -- Sort alphabetically, but keep bash/zsh/pwsh/sh/python towards the top
+  local priority = { bash = 1, zsh = 2, pwsh = 3, sh = 4, python = 5, dockerfile = 6, yaml = 7 }
   table.sort(list, function(a, b)
     local pa = priority[a.lang] or 99
     local pb = priority[b.lang] or 99
