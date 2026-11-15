@@ -19,6 +19,14 @@ end, {
   desc = "Create a new article in directory",
 })
 
+vim.api.nvim_create_user_command("ArticleList", function()
+  require("article").list()
+end, { desc = "List and fuzzy find articles" })
+
+vim.api.nvim_create_user_command("ArticleGrep", function()
+  require("article").grep()
+end, { desc = "Grep inside articles directory" })
+
 vim.api.nvim_create_user_command("ArticleRun", function()
   require("article").run()
 end, { desc = "Run code block under cursor" })

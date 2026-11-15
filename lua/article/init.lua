@@ -7,6 +7,7 @@ local renderer = require("article.renderer")
 local creator = require("article.creator")
 local editor = require("article.editor")
 local new_art = require("article.new")
+local list = require("article.list")
 
 ---Register group and keymaps with which-key if available
 ---@param km table
@@ -21,6 +22,8 @@ local function register_which_key(km)
     wk.add({
       { "<leader>a", group = "article", icon = { icon = "󰏪", color = "azure" } },
       { km.new, desc = "New article" },
+      { km.list, desc = "List articles" },
+      { km.grep, desc = "Grep articles" },
       { km.run, desc = "Run code block" },
       { km.next, desc = "Run & jump next" },
       { km.insert, desc = "Insert code block" },
@@ -33,6 +36,8 @@ local function register_which_key(km)
       ["<leader>a"] = {
         name = "+article",
         n = { "New article" },
+        l = { "List articles" },
+        ["/"] = { "Grep articles" },
         x = { "Run code block" },
         s = { "Run & next step" },
         b = { "Insert code block" },
@@ -54,6 +59,12 @@ function M.setup(opts)
     -- Global keymap for creating a new article from anywhere
     if km.new and km.new ~= false then
       vim.keymap.set("n", km.new, function() M.new() end, { silent = true, desc = "Article: New article" })
+    end
+    if km.list and km.list ~= false then
+      vim.keymap.set("n", km.list, function() M.list() end, { silent = true, desc = "Article: List articles" })
+    end
+    if km.grep and km.grep ~= false then
+      vim.keymap.set("n", km.grep, function() M.grep() end, { silent = true, desc = "Article: Grep articles" })
     end
 
     -- Try registering with which-key immediately if already loaded
@@ -164,6 +175,18 @@ end
 ---@param opts? table
 function M.new(opts)
   new_art.prompt_create(opts)
+end
+
+---List and fuzzy find articles in directory
+---@param opts? table
+function M.list(opts)
+  list.open(opts)
+end
+
+---Grep inside articles directory
+---@param opts? table
+function M.grep(opts)
+  list.grep(opts)
 end
 
 ---Clear output block below current code block

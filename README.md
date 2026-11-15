@@ -40,13 +40,15 @@
 | キー | コマンド | 説明 |
 | :--- | :--- | :--- |
 | `<leader>an` | `:ArticleNew [title]` | **指定ディレクトリ内に新規記事を作成**（環境メタデータ・タイトル入力・テンプレート付き） |
+| `<leader>al` | `:ArticleList` | **記事リスト表示＆曖昧検索**（Snacks.picker / Telescope / vim.ui.select 対応、プレビュー付き） |
+| `<leader>a/` | `:ArticleGrep` | **記事ディレクトリ内の全文曖昧検索 (grep)** |
 | `<leader>ax` | `:ArticleRun` | カーソル位置のコードブロックを実行し、直下に ````output` を生成/更新 |
 | `<leader>as` | `:ArticleNext` | 現在のブロックを実行後、**自動的に次のコードブロックへ進む（ステップ実行）** |
 | `<leader>ab` | `:ArticleInsert` | コードブロック挿入セレクタを開く（**言語バージョンコメント自動付与**） |
 | `<leader>ae` | `:ArticleEdit` | ブロックを専用バッファ（Float Window）で開き、LSP補完を効かせて編集 |
 | `<leader>ac` | `:ArticleClear` | 直下の ````output` ブロックを消去 |
 
-※ `<leader>an`（新規作成）はどのバッファからでもグローバルに呼び出せます。
+※ `<leader>an`, `<leader>al`, `<leader>a/` はどのバッファからでもグローバルに呼び出せます。
 ※ 専用エディタ画面（`<leader>ae`）内では、`q` または `<C-c><C-c>` で保存して記事へ戻れます。
 
 ---
@@ -79,6 +81,8 @@ require("article").setup({
   keymaps = {
     enable = true,
     new = "<leader>an",     -- 新規記事作成
+    list = "<leader>al",    -- 記事リスト・曖昧検索
+    grep = "<leader>a/",    -- 記事ディレクトリ内の grep
     run = "<leader>ax",     -- 現在のブロック実行
     next = "<leader>as",    -- 実行して次のステップへ進む
     insert = "<leader>ab",  -- コードブロック挿入
