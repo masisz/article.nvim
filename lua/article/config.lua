@@ -24,6 +24,47 @@ local function default_pwsh()
   return "pwsh"
 end
 
+---Wrap code in a boilerplate main function if not already present
+---@param lang string
+---@param code string
+---@return string
+function M.auto_wrap_main(lang, code)
+  if lang == "c" then
+    if not code:match("main%s*%(") then
+      return string.format(
+        "#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <stdbool.h>\n#include <math.h>\n\nint main(void) {\n%s\n    return 0;\n}\n",
+        code
+      )
+    end
+  elseif lang == "cpp" then
+    if not code:match("main%s*%(") then
+      return string.format(
+        "#include <iostream>\n#include <vector>\n#include <string>\n#include <algorithm>\n#include <memory>\n#include <cmath>\n\nint main() {\n%s\n    return 0;\n}\n",
+        code
+      )
+    end
+  elseif lang == "rust" then
+    if not code:match("fn%s+main%s*%(") then
+      return string.format("fn main() {\n%s\n}\n", code)
+    end
+  elseif lang == "go" then
+    if not code:match("func%s+main%s*%(") then
+      return string.format(
+        "package main\n\nimport (\n    \"fmt\"\n    \"os\"\n    \"strings\"\n)\n\nfunc main() {\n%s\n}\n",
+        code
+      )
+    end
+  elseif lang == "java" then
+    if not code:match("void%s+main%s*%(") then
+      return string.format(
+        "public class Main {\n    public static void main(String[] args) {\n%s\n    }\n}\n",
+        code
+      )
+    end
+  end
+  return code
+end
+
 ---Helper to compile and execute temporary source files for Rust, Zig, C++
 ---@param ext string File extension without dot (e.g. "rs", "zig", "cpp")
 ---@param build_run_fn fun(src: string, bin: string): string[] Command returning array
@@ -43,10 +84,12 @@ local function run_temp_compiled(ext, build_run_fn, code, callback)
 
   local cmd = build_run_fn(tmp_src, tmp_bin)
   vim.system(cmd, { text = true }, function(obj)
-    local out = (obj.stdout or "") .. (obj.stderr or "")
-    pcall(os.remove, tmp_src)
-    pcall(os.remove, tmp_bin)
-    callback(out, obj.code ~= 0 and ("Execution failed (exit code " .. obj.code .. ")") or nil)
+    vim.schedule(function()
+      local out = (obj.stdout or "") .. (obj.stderr or "")
+      pcall(os.remove, tmp_src)
+      pcall(os.remove, tmp_bin)
+      callback(out, obj.code ~= 0 and ("Execution failed (exit code " .. obj.code .. ")") or nil)
+    end)
   end)
 end
 
@@ -145,20 +188,17 @@ M.defaults = {
       template = 'puts "Hello from Ruby #{RUBY_VERSION}"',
     },
     rust = {
-      desc = "Rust (compiled via rustc)",
-      template = {
-        "fn main() {",
-        '    println!("Hello from Rust!");',
-        "}",
-      },
+      desc = "Rust (compiled via rustc, auto-wraps main)",
+      template = 'println!("Hello from Rust!");',
       runner = function(code, _, callback)
         if vim.fn.executable("rustc") ~= 1 then
           callback("", "Executable 'rustc' not found in PATH")
           return
         end
+        local full_code = auto_wrap_main("rust", code)
         run_temp_compiled("rs", function(src, bin)
           return { "bash", "-c", string.format("rustc %q -o %q && %q", src, bin, bin) }
-        end, code, callback)
+        end, full_code, callback)
       end,
     },
     zig = {
@@ -181,85 +221,61 @@ M.defaults = {
       end,
     },
     cpp = {
-      desc = "C++ (compiled via clang++ / g++)",
-      template = {
-        "#include <iostream>",
-        "",
-        "int main() {",
-        '    std::cout << "Hello from C++!" << std::endl;',
-        "    return 0;",
-        "}",
-      },
+      desc = "C++ (compiled via clang++ / g++, auto-wraps main)",
+      template = 'std::cout << "Hello from C++!" << std::endl;',
       runner = function(code, _, callback)
         local cc = (vim.fn.executable("clang++") == 1 and "clang++") or (vim.fn.executable("g++") == 1 and "g++")
         if not cc then
           callback("", "Neither 'clang++' nor 'g++' found in PATH")
           return
         end
+        local full_code = auto_wrap_main("cpp", code)
         run_temp_compiled("cpp", function(src, bin)
           return { "bash", "-c", string.format("%s -std=c++17 %q -o %q && %q", cc, src, bin, bin) }
-        end, code, callback)
+        end, full_code, callback)
       end,
     },
     c = {
-      desc = "C (compiled via clang / gcc)",
-      template = {
-        "#include <stdio.h>",
-        "",
-        "int main(void) {",
-        '    printf("Hello from C!\\n");',
-        "    return 0;",
-        "}",
-      },
+      desc = "C (compiled via clang / gcc, auto-wraps main)",
+      template = 'printf("Hello from C!\\n");',
       runner = function(code, _, callback)
         local cc = (vim.fn.executable("clang") == 1 and "clang") or (vim.fn.executable("gcc") == 1 and "gcc")
         if not cc then
           callback("", "Neither 'clang' nor 'gcc' found in PATH")
           return
         end
+        local full_code = auto_wrap_main("c", code)
         run_temp_compiled("c", function(src, bin)
           return { "bash", "-c", string.format("%s %q -o %q && %q", cc, src, bin, bin) }
-        end, code, callback)
+        end, full_code, callback)
       end,
     },
     go = {
-      desc = "Go (run via go run)",
-      template = {
-        "package main",
-        "",
-        'import "fmt"',
-        "",
-        "func main() {",
-        '    fmt.Println("Hello from Go!")',
-        "}",
-      },
+      desc = "Go (run via go run, auto-wraps main)",
+      template = 'fmt.Println("Hello from Go!")',
       runner = function(code, _, callback)
         if vim.fn.executable("go") ~= 1 then
           callback("", "Executable 'go' not found in PATH")
           return
         end
+        local full_code = auto_wrap_main("go", code)
         run_temp_compiled("go", function(src, _)
           return { "go", "run", src }
-        end, code, callback)
+        end, full_code, callback)
       end,
     },
     java = {
-      desc = "Java (executed via java source runner)",
-      template = {
-        "public class Main {",
-        "    public static void main(String[] args) {",
-        '        System.out.println("Hello from Java!");',
-        "    }",
-        "}",
-      },
+      desc = "Java (executed via java runner, auto-wraps main)",
+      template = 'System.out.println("Hello from Java!");',
       runner = function(code, _, callback)
         if vim.fn.executable("java") ~= 1 then
           callback("", "Executable 'java' not found in PATH")
           return
         end
+        local full_code = auto_wrap_main("java", code)
         run_temp_compiled("java", function(src, _)
           return { "java", src }
-        end, code, callback)
+        end, full_code, callback)
       end,
     },
     csharp = {
