@@ -123,22 +123,25 @@ M.defaults = {
   template = {
     "# [Title]",
     "",
-    function() return "Created: " .. os.date("%Y-%m-%d %H:%M") end,
-    "Tags: #article",
+    function() return "- Created: " .. os.date("%Y-%m-%d %H:%M") end,
+    function() return "- OS: " .. require("article.env").get_os_info() end,
+    function() return "- Editor: " .. require("article.env").get_nvim_info() end,
+    "- Tags: #article",
     "",
     "## Overview",
     "",
   },
-  cursor_pos = { 7, 0 },
+  cursor_pos = { 9, 0 },
+  include_version_comment = true,
   output_lang = "output",
   strip_ansi = true,
   timeout = 15000,
   usurai_sync = true,
   keymaps = {
     enable = true,
-    new = "<leader>aN",      -- Create new article in directory
+    new = "<leader>an",      -- Create new article in directory
     run = "<leader>ax",      -- Run current code block & update output
-    next = "<leader>an",     -- Run current and jump to next code block
+    next = "<leader>as",     -- Run current and jump to next code block (step)
     insert = "<leader>ab",   -- Insert a new code block (select language)
     edit = "<leader>ae",     -- Open current block in dedicated buffer (C-c ')
     clear = "<leader>ac",    -- Clear output block below cursor

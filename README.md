@@ -39,14 +39,14 @@
 
 | キー | コマンド | 説明 |
 | :--- | :--- | :--- |
-| `<leader>aN` | `:ArticleNew [title]` | **指定ディレクトリ内に新規記事を作成**（タイトル入力・連番・テンプレート付き） |
+| `<leader>an` | `:ArticleNew [title]` | **指定ディレクトリ内に新規記事を作成**（環境メタデータ・タイトル入力・テンプレート付き） |
 | `<leader>ax` | `:ArticleRun` | カーソル位置のコードブロックを実行し、直下に ````output` を生成/更新 |
-| `<leader>an` | `:ArticleNext` | 現在のブロックを実行後、**自動的に次のコードブロックへジャンプ**（手順の通しテスト） |
-| `<leader>ab` | `:ArticleInsert` | コードブロック挿入セレクタを開く（テンプレート付き） |
+| `<leader>as` | `:ArticleNext` | 現在のブロックを実行後、**自動的に次のコードブロックへ進む（ステップ実行）** |
+| `<leader>ab` | `:ArticleInsert` | コードブロック挿入セレクタを開く（**言語バージョンコメント自動付与**） |
 | `<leader>ae` | `:ArticleEdit` | ブロックを専用バッファ（Float Window）で開き、LSP補完を効かせて編集 |
 | `<leader>ac` | `:ArticleClear` | 直下の ````output` ブロックを消去 |
 
-※ `<leader>aN`（新規作成）はどのバッファからでもグローバルに呼び出せます。
+※ `<leader>an`（新規作成）はどのバッファからでもグローバルに呼び出せます。
 ※ 専用エディタ画面（`<leader>ae`）内では、`q` または `<C-c><C-c>` で保存して記事へ戻れます。
 
 ---
@@ -78,12 +78,12 @@ require("article").setup({
   -- キーマップのカスタマイズ (false で無効化)
   keymaps = {
     enable = true,
-    new = "<leader>aN",     -- 新規記事作成
-    run = "<leader>ax",
-    next = "<leader>an",
-    insert = "<leader>ab",
-    edit = "<leader>ae",
-    clear = "<leader>ac",
+    new = "<leader>an",     -- 新規記事作成
+    run = "<leader>ax",     -- 現在のブロック実行
+    next = "<leader>as",    -- 実行して次のステップへ進む
+    insert = "<leader>ab",  -- コードブロック挿入
+    edit = "<leader>ae",    -- 専用バッファ編集
+    clear = "<leader>ac",   -- 出力ブロック消去
   },
 
   -- ブロック定義の拡張

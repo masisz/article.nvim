@@ -9,10 +9,12 @@ assert(path1 ~= nil, "File should be created")
 assert(vim.uv.fs_stat(path1) ~= nil, "File should exist on disk")
 assert(path1:find("docker%-setup%-guide%.md$"), "Filename should include slug")
 
--- Verify content has title expanded
+-- Verify content has title and environment expanded
 local content1 = table.concat(vim.fn.readfile(path1), "\n")
 assert(content1:find("# Docker Setup Guide"), "Content should include title")
-assert(content1:find("Tags: #article"), "Content should include tags")
+assert(content1:find("%- OS:"), "Content should include OS info")
+assert(content1:find("%- Editor: NVIM"), "Content should include Neovim info")
+assert(content1:find("%- Tags: #article"), "Content should include tags")
 
 -- 2. Test creating untitled (sequential) article
 local path2 = article.create(nil, { directory = test_dir })

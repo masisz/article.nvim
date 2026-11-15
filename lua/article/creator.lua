@@ -60,6 +60,16 @@ function M.insert(lang, bufnr)
   local lines = { "```" .. lang }
   local cursor_offset = 1 -- line inside the block to place cursor
 
+  -- Prepend language runtime version comment if available
+  if config.include_version_comment ~= false then
+    local env = require("article.env")
+    local ver_comment = env.get_lang_comment(lang)
+    if ver_comment then
+      table.insert(lines, ver_comment)
+      cursor_offset = 2
+    end
+  end
+
   if block_def.template then
     if type(block_def.template) == "table" then
       for _, l in ipairs(block_def.template) do

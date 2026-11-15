@@ -32,9 +32,9 @@ local function register_which_key(km)
     wk.register({
       ["<leader>a"] = {
         name = "+article",
-        N = { "New article" },
+        n = { "New article" },
         x = { "Run code block" },
-        n = { "Run & jump next" },
+        s = { "Run & next step" },
         b = { "Insert code block" },
         e = { "Edit in buffer" },
         c = { "Clear output" },
